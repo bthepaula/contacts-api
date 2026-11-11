@@ -9,6 +9,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "check-env": "tsx scripts/check-env.ts",
     "validation": "tsx examples/1-validation.ts"
