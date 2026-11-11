@@ -1,0 +1,23 @@
+{
+  "name": "contacts-api",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A public contacts API in TypeScript: Zod contract, actionable errors, cursor pagination, OpenAPI 3.1 generated from the schemas and a contract test with Ajv.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check-env": "tsx scripts/check-env.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.17.0",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
