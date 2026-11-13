@@ -12,7 +12,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "check-env": "tsx scripts/check-env.ts",
-    "validation": "tsx examples/1-validation.ts"
+    "validation": "tsx examples/1-validation.ts",
+    "openapi": "tsx scripts/generate-openapi.ts"
   },
   "dependencies": {
     "ajv": "^8.17.0",
