@@ -1,6 +1,6 @@
 // Writes openapi.json (the artifact you publish, for docs and SDK generators) and prints a summary of the operations.
 import { writeFileSync } from 'node:fs';
-import { buildOpenApi } from '../spec/openapi.ts';
+import { buildOpenApi } from '../src/spec/openapi.ts';
 
 type Op = { operationId: string; responses: Record<string, unknown> };
 type Doc = {

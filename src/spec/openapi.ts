@@ -3,7 +3,7 @@
 import * as z from 'zod';
 import {
   Contact, ContactList, CreateContactRequest, CreateContactResponse, DeleteContactResponse, ErrorResponse, ListContactsQuery,
-} from '../src/contract/schemas.ts';
+} from '../contract/schemas.ts';
 
 type Json = Record<string, unknown>;
 const ref = (id: string) => `#/components/schemas/${id}`;
