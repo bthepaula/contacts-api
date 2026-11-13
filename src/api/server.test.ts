@@ -49,20 +49,22 @@ describe('contacts API', () => {
     expect((await call('DELETE', `/contacts/${body.id}`)).status).toBe(404);
   });
 
-  it('GET /contacts paginates by offset: limit + offset, newest first', async () => {
+  it('GET /contacts paginates by cursor: limit + after walks the whole list without repeats', async () => {
     for (let i = 0; i < 5; i++) await call('POST', '/contacts', { email: `c${i}@example.com` });
     const p1 = await call('GET', '/contacts?limit=2');
     expect(p1.body).toMatchObject({ object: 'list', has_more: true });
     expect(emails(p1.body)).toEqual(['c4@example.com', 'c3@example.com']);
-    const p3 = await call('GET', '/contacts?limit=2&offset=4');
+    const p2 = await call('GET', `/contacts?limit=2&after=${p1.body.data[1].id}`);
+    const p3 = await call('GET', `/contacts?limit=2&after=${p2.body.data[1].id}`);
     expect(emails(p3.body)).toEqual(['c0@example.com']);
     expect(p3.body.has_more).toBe(false);
   });
 
   it('an invalid query becomes 422 validation_error with an actionable message', async () => {
-    const res = await call('GET', '/contacts?limit=500');
-    expect(res.status).toBe(422);
-    expect(res.body.message).toBe('`limit` must be less than or equal to 100.');
-    expect((await call('GET', '/contacts?page=2')).body.message).toContain('Unknown field `page`');
+    expect((await call('GET', '/contacts?limit=500')).body.message).toBe('`limit` must be less than or equal to 100.');
+    expect((await call('GET', '/contacts?after=a&before=b')).body.message).toBe('Use either `after` or `before` in the same request, not both.');
+    const unknown = await call('GET', '/contacts?after=does-not-exist');
+    expect(unknown.status).toBe(422);
+    expect(unknown.body.message).toContain('`after` cursor does not match any contact');
   });
 });

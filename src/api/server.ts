@@ -1,13 +1,13 @@
 // The contacts API on node:http, in the shape of the Resend API: snake_case JSON, errors as
-// { statusCode, name, message }, and lists as { object: 'list', has_more, data }. For now the list is
-// paginated by OFFSET (limit, offset): the naive way.
+// { statusCode, name, message }, and lists as { object: 'list', has_more, data } paginated by cursor.
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import * as z from 'zod';
+import type * as z from 'zod';
 import { ApiError, fromZodError } from '../contract/errors.ts';
 import {
-  Contact, ContactList, CreateContactRequest, CreateContactResponse, DeleteContactResponse,
+  Contact, ContactList, CreateContactRequest, CreateContactResponse, DeleteContactResponse, ListContactsQuery,
 } from '../contract/schemas.ts';
+import { pageByCursor } from './pagination.ts';
 import { ContactStore } from './store.ts';
 
 type Reply = { status: number; body: unknown };
@@ -38,17 +38,25 @@ function createContact(store: ContactStore, body: unknown): Reply {
   return ok(201, CreateContactResponse, { object: 'contact', id: contact.id });
 }
 
-// Offset pagination: "skip N items". Simple, and fragile when the list changes (the next step shows why)
-const OffsetQuery = z.strictObject({
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  offset: z.coerce.number().int().min(0).default(0),
-});
+// The cursor the client sees is a contact id; the store sorts by the seq behind it
+function cursorSeq(store: ContactStore, id: string | undefined, param: 'after' | 'before'): number | undefined {
+  if (id === undefined) return undefined;
+  const seq = store.seqOf(id);
+  if (seq === undefined) {
+    throw new ApiError(422, 'validation_error',
+      `The \`${param}\` cursor does not match any contact. Use the \`id\` of an item from a previous page.`);
+  }
+  return seq;
+}
 
 function listContacts(store: ContactStore, params: URLSearchParams): Reply {
-  const q = parse(OffsetQuery, Object.fromEntries(params), ['limit', 'offset']);
-  const rows = store.newestFirst();
-  const data = rows.slice(q.offset, q.offset + q.limit).map((row) => row.contact);
-  return ok(200, ContactList, { object: 'list', has_more: q.offset + q.limit < rows.length, data });
+  const q = parse(ListContactsQuery, Object.fromEntries(params), ['limit', 'after', 'before']);
+  const page = pageByCursor(store.newestFirst(), {
+    limit: q.limit,
+    after: cursorSeq(store, q.after, 'after'),
+    before: cursorSeq(store, q.before, 'before'),
+  });
+  return ok(200, ContactList, { object: 'list', has_more: page.has_more, data: page.data.map((row) => row.contact) });
 }
 
 function getContact(store: ContactStore, id: string): Reply {
