@@ -1,5 +1,5 @@
 // The whole API contract in one place. Zod validates at runtime, TypeScript infers the types,
-// and the same schemas become the OpenAPI document. Field names are snake_case.
+// and the same schemas become the OpenAPI document. Field names are snake_case, like the Resend API.
 import * as z from 'zod';
 
 // ---------- requests: what the client sends ----------
@@ -29,7 +29,7 @@ export type Contact = z.output<typeof Contact>;
 export const CreateContactResponse = z.object({ object: z.literal('contact'), id: z.string() });
 export const DeleteContactResponse = z.object({ object: z.literal('contact'), id: z.string(), deleted: z.literal(true) });
 
-// list envelope: { object: 'list', has_more, data }
+// The same list envelope as Resend: { object: 'list', has_more, data }
 export const ContactList = z.object({
   object: z.literal('list'),
   has_more: z.boolean().describe('If true, there are more items after this page.'),
@@ -37,7 +37,7 @@ export const ContactList = z.object({
 });
 
 // ---------- errors: one shape for the whole API ----------
-// { statusCode, name, message }. The name is the contract (stable, for code);
+// The same envelope as Resend: { statusCode, name, message }. The name is the contract (stable, for code);
 // the message is for humans and agents, and says what to do.
 export const ErrorName = z.enum([
   'missing_api_key',
@@ -54,3 +54,16 @@ export const ErrorResponse = z.object({
   message: z.string(),
 });
 export type ErrorResponse = z.infer<typeof ErrorResponse>;
+
+// ---------- list query: cursor pagination ----------
+export const ListContactsQuery = z
+  .strictObject({
+    limit: z.coerce.number().int().min(1).max(100).default(20).describe('Items per page (1 to 100).'),
+    after: z.string().min(1).optional().describe('id of the last item seen: returns the items after it.'),
+    before: z.string().min(1).optional().describe('id of the first item seen: returns the items before it.'),
+  })
+  .refine((q) => !(q.after && q.before), {
+    path: ['before'],
+    message: 'Use either `after` or `before` in the same request, not both',
+  });
+export type ListContactsQuery = z.output<typeof ListContactsQuery>;
